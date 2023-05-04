@@ -1,32 +1,110 @@
-const timer = new Worker("/timer.js");
+"use strict"
 
 const value = document.querySelector("#value");
-const progress = document.querySelector("#progress");
 const control = document.querySelector("#control");
 const reset = document.querySelector("#reset");
-
-const alarm = new Audio("/alarm.ogg");
-alarm.loop = true;
 
 const TimerStatePaused = 0;
 const TimerStateActive = 1;
 const TimerStateFinished = 2;
 
-const duration = 5 * 1000;
-let timerState = TimerStatePaused;
+const timer = {
+    worker: new Worker("/timer.js"),
+    state: TimerStatePaused,
+    duration: 0,
+
+    setDuration(d) {
+        this.duration = d;
+        this.worker.postMessage({ type: "set-duration", payload: d });
+    },
+
+    start() {
+        this.state = TimerStateActive;
+        this.worker.postMessage({ type: "start" });
+    },
+
+    stop() {
+        this.state = TimerStatePaused;
+        this.worker.postMessage({ type: "stop" });
+    },
+
+    reset() {
+        this.state = TimerStatePaused;
+        this.worker.postMessage({ type: "reset" });
+    }
+};
+
+const alarm = {
+    elem: document.querySelector("audio"),
+
+    play() {
+        this.elem.play().catch(console.error);
+    },
+
+    reset() {
+        if (this.elem.paused) return;
+        this.elem.pause();
+        this.elem.currentTime = 0;
+    }
+};
+
+const progress = {
+    anim: null,
+    elem: document.querySelector(".progress"),
+    keyframes: [{ width: "0%" }, { width: "100%" }],
+    opts: { duration: 0, fill: "forwards" },
+
+    start() {
+        if (!this.anim) {
+            this.anim = this.elem.animate(this.keyframes, this.opts)
+        } else {
+            this.anim.play();
+        }
+        this.elem.classList.remove("progress-stopped");
+    },
+
+    stop() {
+        if (!this.anim) return;
+        this.anim.pause();
+        this.elem.classList.add("progress-stopped");
+    },
+
+    reset() {
+        if (!this.anim) return;
+        this.anim.cancel();
+    },
+
+    setDuration(d) {
+        if (this.anim) {
+            this.anim = null;
+        }
+        this.opts.duration = d;
+    }
+};
+
+reset.addEventListener("click", () => {
+    timer.reset();
+    progress.reset();
+    alarm.reset();
+
+    renderControlText(control, timer.state);
+    renderTime(value, timer.duration, 0);
+});
 
 control.addEventListener("click", () => {
-    switch (timerState) {
+    switch (timer.state) {
     case TimerStatePaused:
-        setTimerState(TimerStateActive);
-        timer.postMessage({ type: "start" });
+        timer.start();
+        progress.start();
+        renderControlText(control, timer.state);
         break;
     case TimerStateActive:
-        setTimerState(TimerStatePaused);
-        timer.postMessage({ type: "stop" });
+        timer.stop();
+        progress.stop();
+        renderControlText(control, timer.state);
         break;
     case TimerStateFinished:
-        resetAlarm();
+        alarm.reset();
         break;
     default:
         console.error("unreachable", timerState);
@@ -34,28 +112,23 @@ control.addEventListener("click", () => {
     }
 });
 
-reset.addEventListener("click", () => {
-    setTimerState(TimerStatePaused);
-    timer.postMessage({ type: "reset" });
-    resetAlarm();
-    progress.value = 0;
-    renderTime(value, 0);
-});
-
-timer.addEventListener("message", event => {
-    console.assert(event.data.type === "tick");
+timer.worker.addEventListener("message", event => {
+    if (event.data.type !== "tick") {
+        console.error("unknown worker event", event.data.type);
+        return;
+    }
 
     const elapsed = event.data.payload;
 
-    progress.value = elapsed;
-
     if (elapsed >= 1000) {
-        renderTime(value, elapsed - elapsed % 1000);
+        renderTime(value, timer.duration, elapsed - elapsed % 1000);
     }
 
-    if (elapsed >= duration) {
-        setTimerState(TimerStateFinished);
-        alarm.play().catch(console.error);
+    if (elapsed >= timer.duration) {
+        timer.state = TimerStateFinished;
+        progress.stop();
+        alarm.play();
+        renderControlText(control, timer.state);
     }
 });
 
@@ -67,7 +140,7 @@ function toHMS(secs) {
     ];
 }
 
-function renderTime(container, elap) {
+function renderTime(container, duration, elap) {
     const [h, m, s] = toHMS((duration - elap) * 0.001);
     let value = "";
 
@@ -84,24 +157,19 @@ function renderTime(container, elap) {
     container.textContent = value;
 }
 
-function setTimerState(s) {
+function renderControlText(container, timerState) {
     const buttonText = {
         [TimerStatePaused]: "start",
         [TimerStateActive]: "stop",
         [TimerStateFinished]: "ok",
     };
 
-    timerState = s;
-    control.textContent = buttonText[s];
+    container.textContent = buttonText[timerState];
 }
 
-function resetAlarm() {
-    if (alarm.paused) return;
-    alarm.pause();
-    alarm.currentTime = 0;
-}
+window.addEventListener("load", () => {
+    timer.setDuration(3 * 1000);
+    progress.setDuration(timer.duration);
 
-renderTime(value, 0);
-progress.max = duration;
-progress.value = 0;
-timer.postMessage({ type: "set-duration", payload: duration });
+    renderTime(value, timer.duration, 0);
+});

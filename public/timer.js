@@ -1,3 +1,5 @@
+"use strict"
+
 let duration;
 let prevTimestamp;
 
@@ -14,30 +16,30 @@ function update(timestamp) {
 
     if (elapsed > duration) elapsed = duration;
 
-    self.postMessage({ type: "tick", payload: elapsed });
+    postMessage({ type: "tick", payload: elapsed });
 
     if (elapsed < duration) {
-        frame = self.requestAnimationFrame(update);
+        frame = requestAnimationFrame(update);
     }
 }
 
-self.addEventListener("message", event => {
+addEventListener("message", event => {
     switch (event.data.type) {
     case "start":
         if (!frame) {
-            frame = self.requestAnimationFrame(update);
+            frame = requestAnimationFrame(update);
         }
         break;
     case "stop":
         if (frame) {
-            self.cancelAnimationFrame(frame);
+            cancelAnimationFrame(frame);
             frame = null;
             prevTimestamp = null;
         }
         break;
     case "reset":
         if (frame) {
-            self.cancelAnimationFrame(frame);
+            cancelAnimationFrame(frame);
             frame = null;
         }
         prevTimestamp = null;
