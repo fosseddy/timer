@@ -1,35 +1,32 @@
 const timer = new Worker("/timer.js");
 
 const value = document.querySelector("#value");
+const progress = document.querySelector("#progress");
 const control = document.querySelector("#control");
 const reset = document.querySelector("#reset");
 
 const alarm = new Audio("/alarm.ogg");
 alarm.loop = true;
 
-const TimerState = {
-    Paused: "paused",
-    Active: "active",
-    Finished: "finished"
-};
+const TimerStatePaused = 0;
+const TimerStateActive = 1;
+const TimerStateFinished = 2;
 
-const duration = 820 * 1000;
-let timerState = TimerState.Paused;
+const duration = 5 * 1000;
+let timerState = TimerStatePaused;
 
 control.addEventListener("click", () => {
     switch (timerState) {
-    case TimerState.Paused:
-        setTimerState(TimerState.Active);
+    case TimerStatePaused:
+        setTimerState(TimerStateActive);
         timer.postMessage({ type: "start" });
         break;
-    case TimerState.Active:
-        setTimerState(TimerState.Paused);
+    case TimerStateActive:
+        setTimerState(TimerStatePaused);
         timer.postMessage({ type: "stop" });
         break;
-    case TimerState.Finished:
-        if (alarm.paused) return;
-        alarm.pause();
-        alarm.currentTime = 0;
+    case TimerStateFinished:
+        resetAlarm();
         break;
     default:
         console.error("unreachable", timerState);
@@ -38,8 +35,10 @@ control.addEventListener("click", () => {
 });
 
 reset.addEventListener("click", () => {
-    setTimerState(TimerState.Paused);
+    setTimerState(TimerStatePaused);
     timer.postMessage({ type: "reset" });
+    resetAlarm();
+    progress.value = 0;
     renderTime(value, 0);
 });
 
@@ -48,12 +47,14 @@ timer.addEventListener("message", event => {
 
     const elapsed = event.data.payload;
 
+    progress.value = elapsed;
+
     if (elapsed >= 1000) {
         renderTime(value, elapsed - elapsed % 1000);
     }
 
     if (elapsed >= duration) {
-        setTimerState(TimerState.Finished);
+        setTimerState(TimerStateFinished);
         alarm.play().catch(console.error);
     }
 });
@@ -85,14 +86,22 @@ function renderTime(container, elap) {
 
 function setTimerState(s) {
     const buttonText = {
-        [TimerState.Paused]: "start",
-        [TimerState.Active]: "stop",
-        [TimerState.Finished]: "ok",
+        [TimerStatePaused]: "start",
+        [TimerStateActive]: "stop",
+        [TimerStateFinished]: "ok",
     };
 
     timerState = s;
     control.textContent = buttonText[s];
 }
 
+function resetAlarm() {
+    if (alarm.paused) return;
+    alarm.pause();
+    alarm.currentTime = 0;
+}
+
 renderTime(value, 0);
+progress.max = duration;
+progress.value = 0;
 timer.postMessage({ type: "set-duration", payload: duration });
