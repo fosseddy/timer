@@ -13,29 +13,23 @@ const TimerState = {
     Finished: "finished"
 };
 
+const duration = 820 * 1000;
 let timerState = TimerState.Paused;
 
-const duration = 3 * 1000;
-
 control.addEventListener("click", () => {
-    debugger;
     switch (timerState) {
     case TimerState.Paused:
-        //timer.postMessage({ type: "start" });
-        control.textContent = "stop";
-        timerState = TimerState.Active;
+        setTimerState(TimerState.Active);
+        timer.postMessage({ type: "start" });
         break;
     case TimerState.Active:
-        //timer.postMessage({ type: "stop" });
-        control.textContent = "start";
-        timerState = TimerState.Paused;
+        setTimerState(TimerState.Paused);
+        timer.postMessage({ type: "stop" });
         break;
     case TimerState.Finished:
-        //if (alarm.paused) return;
-
-        //alarm.pause();
-        //alarm.currentTime = 0;
-        control.textContent = "ok";
+        if (alarm.paused) return;
+        alarm.pause();
+        alarm.currentTime = 0;
         break;
     default:
         console.error("unreachable", timerState);
@@ -44,6 +38,7 @@ control.addEventListener("click", () => {
 });
 
 reset.addEventListener("click", () => {
+    setTimerState(TimerState.Paused);
     timer.postMessage({ type: "reset" });
     renderTime(value, 0);
 });
@@ -58,11 +53,12 @@ timer.addEventListener("message", event => {
     }
 
     if (elapsed >= duration) {
+        setTimerState(TimerState.Finished);
         alarm.play().catch(console.error);
     }
 });
 
-function parseTime(secs) {
+function toHMS(secs) {
     return [
         Math.floor(secs / 3600),
         Math.floor(secs / 60),
@@ -71,7 +67,7 @@ function parseTime(secs) {
 }
 
 function renderTime(container, elap) {
-    const [h, m, s] = parseTime((duration - elap) * 0.001);
+    const [h, m, s] = toHMS((duration - elap) * 0.001);
     let value = "";
 
     if (h > 0) {
@@ -85,6 +81,17 @@ function renderTime(container, elap) {
     value += `${s}s`;
 
     container.textContent = value;
+}
+
+function setTimerState(s) {
+    const buttonText = {
+        [TimerState.Paused]: "start",
+        [TimerState.Active]: "stop",
+        [TimerState.Finished]: "ok",
+    };
+
+    timerState = s;
+    control.textContent = buttonText[s];
 }
 
 renderTime(value, 0);
