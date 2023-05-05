@@ -29,11 +29,7 @@ const timer = {
     worker: new Worker("/timer.js"),
     state: TimerStatePaused,
     duration: 0,
-
-    setDuration(d) {
-        this.duration = d;
-        this.worker.postMessage({ type: "set-duration", payload: d });
-    },
+    elapsed: 0,
 
     start() {
         this.state = TimerStateActive;
@@ -45,7 +41,13 @@ const timer = {
         this.worker.postMessage({ type: "stop" });
     },
 
+    finish() {
+        this.state = TimerStateFinished;
+        this.worker.postMessage({ type: "stop" });
+    },
+
     reset() {
+        this.elapsed = 0;
         this.state = TimerStatePaused;
         this.worker.postMessage({ type: "reset" });
     }
@@ -71,7 +73,7 @@ const progress = {
 
     start() {
         if (!this.anim) {
-            this.anim = this.elem.animate(this.keyframes, this.opts)
+            this.anim = this.elem.animate(this.keyframes, this.opts);
         } else {
             this.anim.play();
         }
@@ -86,12 +88,9 @@ const progress = {
 
     reset() {
         if (!this.anim) return;
+        this.anim.finish();
         this.anim.cancel();
         this.anim = null;
-    },
-
-    setDuration(d) {
-        this.opts.duration = d;
     }
 };
 
@@ -129,8 +128,8 @@ function reset() {
 function updateDuration() {
     const val = picker.getValue();
 
-    timer.setDuration(val);
-    progress.setDuration(val);
+    timer.duration = val;
+    progress.opts.duration = val
 
     reset();
 }
@@ -166,14 +165,13 @@ timer.worker.addEventListener("message", event => {
         return;
     }
 
-    const elapsed = event.data.payload;
+    timer.elapsed += event.data.payload;
+    if (timer.elapsed > timer.duration) timer.elapsed = timer.duration;
 
-    if (elapsed >= 1000) {
-        ui.renderTime(timer.duration - (elapsed - elapsed % 1000));
-    }
+    ui.renderTime(timer.duration - timer.elapsed);
 
-    if (elapsed >= timer.duration) {
-        timer.state = TimerStateFinished;
+    if (timer.elapsed === timer.duration) {
+        timer.finish();
         progress.stop();
         alarm.play();
         ui.renderControlButton(timer.state);

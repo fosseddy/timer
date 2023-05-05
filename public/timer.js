@@ -1,12 +1,11 @@
 "use strict"
 
-let duration;
 let prevTimestamp;
 
 let frame = null;
 let elapsed = 0;
 
-function update(timestamp) {
+function tick(timestamp) {
     if (!prevTimestamp) {
         prevTimestamp = timestamp;
     }
@@ -14,20 +13,19 @@ function update(timestamp) {
     elapsed += timestamp - prevTimestamp;
     prevTimestamp = timestamp;
 
-    if (elapsed > duration) elapsed = duration;
-
-    postMessage({ type: "tick", payload: elapsed });
-
-    if (elapsed < duration) {
-        frame = requestAnimationFrame(update);
+    if (elapsed >= 1000) {
+        postMessage({ type: "tick", payload: elapsed - elapsed % 1000 });
+        elapsed = elapsed % 1000;
     }
+
+    frame = requestAnimationFrame(tick);
 }
 
 addEventListener("message", event => {
     switch (event.data.type) {
     case "start":
         if (!frame) {
-            frame = requestAnimationFrame(update);
+            frame = requestAnimationFrame(tick);
         }
         break;
     case "stop":
@@ -44,9 +42,6 @@ addEventListener("message", event => {
         }
         prevTimestamp = null;
         elapsed = 0;
-        break;
-    case "set-duration":
-        duration = event.data.payload;
         break;
     default:
         console.error("Worker: unknown event type", event.data.type);
