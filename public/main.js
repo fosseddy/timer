@@ -14,8 +14,8 @@ const ui = {
         [TimerStateFinished]: "ok",
     },
 
-    renderTime(duration, elapsed) {
-        const [h, m, s] = toHMS((duration - elapsed) * 0.001);
+    renderTime(t) {
+        const [h, m, s] = toHMS(t * 0.001);
         let value = "";
 
         if (h > 0) {
@@ -62,20 +62,6 @@ const timer = {
     }
 };
 
-const alarm = {
-    elem: document.querySelector("audio"),
-
-    play() {
-        this.elem.play().catch(console.error);
-    },
-
-    reset() {
-        if (this.elem.paused) return;
-        this.elem.pause();
-        this.elem.currentTime = 0;
-    }
-};
-
 const progress = {
     anim: null,
     elem: document.querySelector(".progress"),
@@ -110,13 +96,35 @@ const progress = {
     }
 };
 
+const alarm = {
+    audio: document.querySelector("audio"),
+
+    play() {
+        this.audio.play().catch(console.error);
+    },
+
+    reset() {
+        if (this.audio.paused) return;
+        this.audio.pause();
+        this.audio.currentTime = 0;
+    }
+};
+
+function toHMS(secs) {
+    return [
+        Math.floor(secs / 3600),
+        Math.floor(secs % 3600 / 60),
+        Math.floor(secs % 60)
+    ];
+}
+
 ui.resetButton.addEventListener("click", () => {
     timer.reset();
     progress.reset();
     alarm.reset();
 
     ui.renderControlButton(timer.state);
-    ui.renderTime(timer.duration, 0);
+    ui.renderTime(timer.duration);
 });
 
 control.addEventListener("click", () => {
@@ -149,7 +157,7 @@ timer.worker.addEventListener("message", event => {
     const elapsed = event.data.payload;
 
     if (elapsed >= 1000) {
-        ui.renderTime(timer.duration, elapsed - elapsed % 1000);
+        ui.renderTime(timer.duration - (elapsed - elapsed % 1000));
     }
 
     if (elapsed >= timer.duration) {
@@ -160,17 +168,9 @@ timer.worker.addEventListener("message", event => {
     }
 });
 
-function toHMS(secs) {
-    return [
-        Math.floor(secs / 3600),
-        Math.floor(secs % 3600 / 60),
-        Math.floor(secs % 60)
-    ];
-}
-
 window.addEventListener("load", () => {
     timer.setDuration(5 * 1000);
     progress.setDuration(timer.duration);
 
-    ui.renderTime(timer.duration, 0);
+    ui.renderTime(timer.duration);
 });
