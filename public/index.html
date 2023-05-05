@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="timer">
-        <div class="picker">
+        <div class="picker hidden">
             <select>
                 <option value="0">00</option>
                 <option value="1">01</option>
@@ -165,16 +165,18 @@
                 <option value="58">58</option>
                 <option value="59">59</option>
             </select>
+
+            <button>set</button>
         </div>
 
         <p id="value"></p>
         <div class="progress"></div>
-        <audio src="/alarm.ogg" loop></audio>
+
+        <button id="control">start</button>
+        <button id="reset">reset</button>
     </div>
 
-    <button id="control">start</button>
-    <button id="reset">reset</button>
-
+    <audio src="/alarm.ogg" loop></audio>
     <script src="/main.js"></script>
 </body>
 </html>

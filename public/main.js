@@ -1,8 +1,8 @@
 "use strict"
 
-const TimerStatePaused = 0;
-const TimerStateActive = 1;
-const TimerStateFinished = 2;
+const ClockStatePaused = 0;
+const ClockStateActive = 1;
+const ClockStateFinished = 2;
 
 const timerValue = {
     elem: document.querySelector("#value"),
@@ -17,9 +17,9 @@ const timerValue = {
 const controlButton = {
     elem: document.querySelector("#control"),
     text: {
-        [TimerStatePaused]: "start",
-        [TimerStateActive]: "stop",
-        [TimerStateFinished]: "ok",
+        [ClockStatePaused]: "start",
+        [ClockStateActive]: "stop",
+        [ClockStateFinished]: "ok",
     },
 
     update(timerState) {
@@ -29,41 +29,43 @@ const controlButton = {
 
 const resetButton = document.querySelector("#reset");
 
-const timer = {
-    worker: new Worker("/timer.js"),
-    state: TimerStatePaused,
+const clock = {
+    worker: new Worker("/clock.js"),
+    state: ClockStatePaused,
     duration: 0,
     elapsed: 0,
 
     start() {
-        this.state = TimerStateActive;
+        this.state = ClockStateActive;
         this.worker.postMessage({ type: "start" });
     },
 
     stop() {
-        this.state = TimerStatePaused;
+        this.state = ClockStatePaused;
         this.worker.postMessage({ type: "stop" });
     },
 
     finish() {
-        this.state = TimerStateFinished;
+        this.state = ClockStateFinished;
         this.worker.postMessage({ type: "stop" });
     },
 
     reset() {
         this.elapsed = 0;
-        this.state = TimerStatePaused;
+        this.state = ClockStatePaused;
         this.worker.postMessage({ type: "reset" });
     }
 };
 
 const picker = {
-    elems: document.querySelectorAll(".picker select"),
+    elem: document.querySelector(".picker"),
+    selects: document.querySelectorAll(".picker select"),
+    confirmButton: document.querySelector(".picker button"),
 
     getValue() {
-        const h = Number(this.elems[0].value);
-        const m = Number(this.elems[1].value);
-        const s = Number(this.elems[2].value);
+        const h = Number(this.selects[0].value);
+        const m = Number(this.selects[1].value);
+        const s = Number(this.selects[2].value);
 
         return (h * 3600 + m * 60 + s) * 1000;
     }
@@ -121,40 +123,48 @@ function toHMS(secs) {
 }
 
 function reset() {
-    timer.reset();
+    clock.reset();
     progress.reset();
     alarm.reset();
 
-    controlButton.update(timer.state);
-    timerValue.update(timer.duration);
+    controlButton.update(clock.state);
+    timerValue.update(clock.duration);
 }
 
-function updateDuration() {
+picker.confirmButton.addEventListener("click", () => {
     const val = picker.getValue();
 
-    timer.duration = val;
+    clock.duration = val;
     progress.opts.duration = val
 
-    reset();
-}
+    timerValue.update(val);
 
-picker.elems.forEach(elem => elem.addEventListener("change", updateDuration));
+    picker.elem.classList.add("hidden");
+    timerValue.elem.classList.remove("hidden");
+});
+
+timerValue.elem.addEventListener("click", () => {
+    reset();
+
+    picker.elem.classList.remove("hidden");
+    timerValue.elem.classList.add("hidden");
+});
 
 resetButton.addEventListener("click", reset);
 
 controlButton.elem.addEventListener("click", () => {
-    switch (timer.state) {
-    case TimerStatePaused:
-        timer.start();
+    switch (clock.state) {
+    case ClockStatePaused:
+        clock.start();
         progress.start();
-        controlButton.update(timer.state);
+        controlButton.update(clock.state);
         break;
-    case TimerStateActive:
-        timer.stop();
+    case ClockStateActive:
+        clock.stop();
         progress.stop();
-        controlButton.update(timer.state);
+        controlButton.update(clock.state);
         break;
-    case TimerStateFinished:
+    case ClockStateFinished:
         alarm.reset();
         break;
     default:
@@ -163,25 +173,30 @@ controlButton.elem.addEventListener("click", () => {
     }
 });
 
-timer.worker.addEventListener("message", event => {
+clock.worker.addEventListener("message", event => {
     if (event.data.type !== "tick") {
         console.error("unknown worker event", event.data.type);
         return;
     }
 
-    timer.elapsed += event.data.payload;
-    if (timer.elapsed > timer.duration) timer.elapsed = timer.duration;
+    clock.elapsed += event.data.payload;
+    if (clock.elapsed > clock.duration) clock.elapsed = clock.duration;
 
-    timerValue.update(timer.duration - timer.elapsed);
+    timerValue.update(clock.duration - clock.elapsed);
 
-    if (timer.elapsed === timer.duration) {
-        timer.finish();
+    if (clock.elapsed === clock.duration) {
+        clock.finish();
         progress.stop();
         alarm.play();
-        controlButton.update(timer.state);
+        controlButton.update(clock.state);
     }
 });
 
 window.addEventListener("load", () => {
-    updateDuration();
+    const val = picker.getValue();
+
+    clock.duration = val;
+    progress.opts.duration = val
+
+    timerValue.update(val);
 });
