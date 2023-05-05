@@ -1,12 +1,40 @@
 "use strict"
 
-const value = document.querySelector("#value");
-const control = document.querySelector("#control");
-const reset = document.querySelector("#reset");
-
 const TimerStatePaused = 0;
 const TimerStateActive = 1;
 const TimerStateFinished = 2;
+
+const ui = {
+    timerValue: document.querySelector("#value"),
+    resetButton: document.querySelector("#reset"),
+    controlButton: document.querySelector("#control"),
+    controlButtonText: {
+        [TimerStatePaused]: "start",
+        [TimerStateActive]: "stop",
+        [TimerStateFinished]: "ok",
+    },
+
+    renderTime(duration, elapsed) {
+        const [h, m, s] = toHMS((duration - elapsed) * 0.001);
+        let value = "";
+
+        if (h > 0) {
+            value += `${h}h `;
+        }
+
+        if (m > 0 || h > 0) {
+            value += `${m}m `;
+        }
+
+        value += `${s}s`;
+
+        this.timerValue.textContent = value;
+    },
+
+    renderControlButton(timerState) {
+        this.controlButton.textContent = this.controlButtonText[timerState];
+    }
+};
 
 const timer = {
     worker: new Worker("/timer.js"),
@@ -82,13 +110,13 @@ const progress = {
     }
 };
 
-reset.addEventListener("click", () => {
+ui.resetButton.addEventListener("click", () => {
     timer.reset();
     progress.reset();
     alarm.reset();
 
-    renderControlText(control, timer.state);
-    renderTime(value, timer.duration, 0);
+    ui.renderControlButton(timer.state);
+    ui.renderTime(timer.duration, 0);
 });
 
 control.addEventListener("click", () => {
@@ -96,12 +124,12 @@ control.addEventListener("click", () => {
     case TimerStatePaused:
         timer.start();
         progress.start();
-        renderControlText(control, timer.state);
+        ui.renderControlButton(timer.state);
         break;
     case TimerStateActive:
         timer.stop();
         progress.stop();
-        renderControlText(control, timer.state);
+        ui.renderControlButton(timer.state);
         break;
     case TimerStateFinished:
         alarm.reset();
@@ -121,14 +149,14 @@ timer.worker.addEventListener("message", event => {
     const elapsed = event.data.payload;
 
     if (elapsed >= 1000) {
-        renderTime(value, timer.duration, elapsed - elapsed % 1000);
+        ui.renderTime(timer.duration, elapsed - elapsed % 1000);
     }
 
     if (elapsed >= timer.duration) {
         timer.state = TimerStateFinished;
         progress.stop();
         alarm.play();
-        renderControlText(control, timer.state);
+        ui.renderControlButton(timer.state);
     }
 });
 
@@ -140,36 +168,9 @@ function toHMS(secs) {
     ];
 }
 
-function renderTime(container, duration, elap) {
-    const [h, m, s] = toHMS((duration - elap) * 0.001);
-    let value = "";
-
-    if (h > 0) {
-        value += `${h}h `;
-    }
-
-    if (m > 0 || h > 0) {
-        value += `${m}m `;
-    }
-
-    value += `${s}s`;
-
-    container.textContent = value;
-}
-
-function renderControlText(container, timerState) {
-    const buttonText = {
-        [TimerStatePaused]: "start",
-        [TimerStateActive]: "stop",
-        [TimerStateFinished]: "ok",
-    };
-
-    container.textContent = buttonText[timerState];
-}
-
 window.addEventListener("load", () => {
-    timer.setDuration(60 * 60 * 1000);
+    timer.setDuration(5 * 1000);
     progress.setDuration(timer.duration);
 
-    renderTime(value, timer.duration, 0);
+    ui.renderTime(timer.duration, 0);
 });
