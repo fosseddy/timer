@@ -142,7 +142,7 @@ picker.elems.forEach(elem => elem.addEventListener("change", updateDuration));
 
 resetButton.addEventListener("click", reset);
 
-control.addEventListener("click", () => {
+controlButton.elem.addEventListener("click", () => {
     switch (timer.state) {
     case TimerStatePaused:
         timer.start();
