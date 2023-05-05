@@ -4,26 +4,30 @@ const TimerStatePaused = 0;
 const TimerStateActive = 1;
 const TimerStateFinished = 2;
 
-const ui = {
-    timerValue: document.querySelector("#value"),
-    resetButton: document.querySelector("#reset"),
-    controlButton: document.querySelector("#control"),
-    controlButtonText: {
+const timerValue = {
+    elem: document.querySelector("#value"),
+
+    update(time) {
+        const hms = toHMS(time * 0.001);
+        const hhmmss = hms.map(it => String(it).padStart(2, "0")).join(":");
+        this.elem.textContent = hhmmss;
+    }
+};
+
+const controlButton = {
+    elem: document.querySelector("#control"),
+    text: {
         [TimerStatePaused]: "start",
         [TimerStateActive]: "stop",
         [TimerStateFinished]: "ok",
     },
 
-    renderTime(t) {
-        let hms = toHMS(t * 0.001);
-        hms = hms.map(it => String(it).padStart(2, "0")).join(":");
-        this.timerValue.textContent = hms;
-    },
-
-    renderControlButton(timerState) {
-        this.controlButton.textContent = this.controlButtonText[timerState];
+    update(timerState) {
+        this.elem.textContent = this.text[timerState];
     }
 };
+
+const resetButton = document.querySelector("#reset");
 
 const timer = {
     worker: new Worker("/timer.js"),
@@ -121,8 +125,8 @@ function reset() {
     progress.reset();
     alarm.reset();
 
-    ui.renderControlButton(timer.state);
-    ui.renderTime(timer.duration);
+    controlButton.update(timer.state);
+    timerValue.update(timer.duration);
 }
 
 function updateDuration() {
@@ -136,19 +140,19 @@ function updateDuration() {
 
 picker.elems.forEach(elem => elem.addEventListener("change", updateDuration));
 
-ui.resetButton.addEventListener("click", reset);
+resetButton.addEventListener("click", reset);
 
 control.addEventListener("click", () => {
     switch (timer.state) {
     case TimerStatePaused:
         timer.start();
         progress.start();
-        ui.renderControlButton(timer.state);
+        controlButton.update(timer.state);
         break;
     case TimerStateActive:
         timer.stop();
         progress.stop();
-        ui.renderControlButton(timer.state);
+        controlButton.update(timer.state);
         break;
     case TimerStateFinished:
         alarm.reset();
@@ -168,13 +172,13 @@ timer.worker.addEventListener("message", event => {
     timer.elapsed += event.data.payload;
     if (timer.elapsed > timer.duration) timer.elapsed = timer.duration;
 
-    ui.renderTime(timer.duration - timer.elapsed);
+    timerValue.update(timer.duration - timer.elapsed);
 
     if (timer.elapsed === timer.duration) {
         timer.finish();
         progress.stop();
         alarm.play();
-        ui.renderControlButton(timer.state);
+        controlButton.update(timer.state);
     }
 });
 
