@@ -15,20 +15,9 @@ const ui = {
     },
 
     renderTime(t) {
-        const [h, m, s] = toHMS(t * 0.001);
-        let value = "";
-
-        if (h > 0) {
-            value += `${h}h `;
-        }
-
-        if (m > 0 || h > 0) {
-            value += `${m}m `;
-        }
-
-        value += `${s}s`;
-
-        this.timerValue.textContent = value;
+        let hms = toHMS(t * 0.001);
+        hms = hms.map(it => String(it).padStart(2, "0")).join(":");
+        this.timerValue.textContent = hms;
     },
 
     renderControlButton(timerState) {
@@ -62,6 +51,18 @@ const timer = {
     }
 };
 
+const picker = {
+    elems: document.querySelectorAll(".picker select"),
+
+    getValue() {
+        const h = Number(this.elems[0].value);
+        const m = Number(this.elems[1].value);
+        const s = Number(this.elems[2].value);
+
+        return (h * 3600 + m * 60 + s) * 1000;
+    }
+};
+
 const progress = {
     anim: null,
     elem: document.querySelector(".progress"),
@@ -86,12 +87,10 @@ const progress = {
     reset() {
         if (!this.anim) return;
         this.anim.cancel();
+        this.anim = null;
     },
 
     setDuration(d) {
-        if (this.anim) {
-            this.anim = null;
-        }
         this.opts.duration = d;
     }
 };
@@ -118,14 +117,27 @@ function toHMS(secs) {
     ];
 }
 
-ui.resetButton.addEventListener("click", () => {
+function reset() {
     timer.reset();
     progress.reset();
     alarm.reset();
 
     ui.renderControlButton(timer.state);
     ui.renderTime(timer.duration);
-});
+}
+
+function updateDuration() {
+    const val = picker.getValue();
+
+    timer.setDuration(val);
+    progress.setDuration(val);
+
+    reset();
+}
+
+picker.elems.forEach(elem => elem.addEventListener("change", updateDuration));
+
+ui.resetButton.addEventListener("click", reset);
 
 control.addEventListener("click", () => {
     switch (timer.state) {
@@ -169,8 +181,5 @@ timer.worker.addEventListener("message", event => {
 });
 
 window.addEventListener("load", () => {
-    timer.setDuration(5 * 1000);
-    progress.setDuration(timer.duration);
-
-    ui.renderTime(timer.duration);
+    updateDuration();
 });
