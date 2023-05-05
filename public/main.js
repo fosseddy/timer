@@ -135,7 +135,7 @@ timer.worker.addEventListener("message", event => {
 function toHMS(secs) {
     return [
         Math.floor(secs / 3600),
-        Math.floor(secs / 60),
+        Math.floor(secs % 3600 / 60),
         Math.floor(secs % 60)
     ];
 }
@@ -148,7 +148,7 @@ function renderTime(container, duration, elap) {
         value += `${h}h `;
     }
 
-    if (m > 0) {
+    if (m > 0 || h > 0) {
         value += `${m}m `;
     }
 
@@ -168,7 +168,7 @@ function renderControlText(container, timerState) {
 }
 
 window.addEventListener("load", () => {
-    timer.setDuration(3 * 1000);
+    timer.setDuration(60 * 60 * 1000);
     progress.setDuration(timer.duration);
 
     renderTime(value, timer.duration, 0);
