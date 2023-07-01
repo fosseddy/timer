@@ -1,7 +1,6 @@
 "use strict"
 
-let prevTimestamp;
-
+let prevTimestamp = null;
 let frame = null;
 let elapsed = 0;
 
@@ -14,30 +13,30 @@ function tick(timestamp) {
     prevTimestamp = timestamp;
 
     if (elapsed >= 1000) {
-        postMessage({ type: "tick", payload: elapsed - elapsed % 1000 });
+        self.postMessage({ type: "tick", payload: elapsed - elapsed % 1000 });
         elapsed = elapsed % 1000;
     }
 
-    frame = requestAnimationFrame(tick);
+    frame = self.requestAnimationFrame(tick);
 }
 
-addEventListener("message", event => {
+self.addEventListener("message", event => {
     switch (event.data.type) {
     case "start":
         if (!frame) {
-            frame = requestAnimationFrame(tick);
+            frame = self.requestAnimationFrame(tick);
         }
         break;
     case "stop":
         if (frame) {
-            cancelAnimationFrame(frame);
+            self.cancelAnimationFrame(frame);
             frame = null;
             prevTimestamp = null;
         }
         break;
     case "reset":
         if (frame) {
-            cancelAnimationFrame(frame);
+            self.cancelAnimationFrame(frame);
             frame = null;
         }
         prevTimestamp = null;
