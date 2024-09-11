@@ -2,30 +2,36 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 )
 
 func main() {
-	fmt.Print("\033[2J")
-	fmt.Print("\033[H")
+	duration := time.Minute * 40
 
-	dur := 3 * 1000
+	if len(os.Args) > 1 {
+		var err error
+
+		if duration, err = time.ParseDuration(os.Args[1]); err != nil {
+			fmt.Println("timer duration is invalid, must be 3h4m5s")
+			os.Exit(1)
+		}
+	}
 
 	for {
-		secs := dur / 1000
-		h := secs / 3600
-		m := secs % 3600 / 60
-		s := secs % 60
+		fmt.Print("\033[2J\033[H")
 
-		fmt.Print("\033[H")
-		fmt.Print("\033[2K")
+		h := duration / time.Hour
+		m := duration % time.Hour / time.Minute
+		s := duration % time.Hour % time.Minute / time.Second
+
 		fmt.Printf("%02d:%02d:%02d\n", h, m, s)
 
-		if dur <= 0 {
+		if duration <= 0 {
 			break
 		}
 
-		dur -= 1000
+		duration -= time.Second
 		time.Sleep(time.Second)
 	}
 }
