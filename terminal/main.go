@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"time"
 )
 
@@ -18,6 +19,8 @@ func main() {
 		}
 	}
 
+	startingDurationText := duration.String()
+
 	for {
 		fmt.Print("\033[2J\033[H")
 
@@ -25,9 +28,18 @@ func main() {
 		m := duration % time.Hour / time.Minute
 		s := duration % time.Hour % time.Minute / time.Second
 
-		fmt.Printf("%02d:%02d:%02d\n", h, m, s)
+		fmt.Printf("  %02d:%02d:%02d\033[H", h, m, s)
 
 		if duration <= 0 {
+			cmd := exec.Command("notify-send")
+			cmd.Args = append(cmd.Args, "Time is Up", fmt.Sprintf("Timer %s has finished", startingDurationText))
+
+			if err := cmd.Run(); err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			fmt.Println()
 			break
 		}
 
