@@ -5,11 +5,9 @@
 
         /* Modules */
         "module": "es2022",                                /* Specify what module code is generated. */
-        "moduleDetection": "force",
 
         /* Emit */
         "sourceMap": true,                                /* Create source map files for emitted JavaScript files. */
-        //"outDir": "./build",                                   /* Specify an output folder for all emitted files. */
         "removeComments": true,                           /* Disable emitting comments. */
         "noEmitOnError": true,                            /* Disable emitting files if any type checking errors are reported. */
         "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */

@@ -3,7 +3,7 @@ interface MessageData {
     payload: number;
 };
 
-const clock = new Worker("/clock.js");
+const clock = new Worker("/worker/clock.js");
 
 clock.addEventListener("message", (event: MessageEvent<MessageData>) => {
     if (event.data.kind !== "tick") {

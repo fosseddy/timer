@@ -1,2 +1,3 @@
-node_modules
-public
+timer
+*.js
+*.js.map
