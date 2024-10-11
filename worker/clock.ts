@@ -1,5 +1,5 @@
 interface MessageData {
-    kind: "start" | "stop" | "reset";
+    kind: "start" | "pause" | "reset";
 }
 
 let prevTimestamp = 0;
@@ -31,7 +31,7 @@ self.addEventListener("message", (event: MessageEvent<MessageData>) => {
             });
         }
         break;
-    case "stop":
+    case "pause":
         if (hasFrame) {
             self.cancelAnimationFrame(frame);
             hasFrame = false;
@@ -50,3 +50,5 @@ self.addEventListener("message", (event: MessageEvent<MessageData>) => {
         break;
     }
 });
+
+export {};

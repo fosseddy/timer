@@ -3,15 +3,27 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/style.css">
+    <script type="module" src="/main.js"></script>
     <title>Timer</title>
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-    </style>
 </head>
 <body>
-    <h1>hello, world</h1>
-    <script type="module" src="/main.js"></script>
+    <form class="duration">
+        <input class="input duration__input" name="duration" autocomplete="off">
+    </form>
+
+    <div class="timer">
+        <div class="timer__value">00:00:00</div>
+
+        <div class="progress timer__progress">
+            <div class="progress__bar progress__bar--done"></div>
+            <div class="progress__bar"></div>
+        </div>
+
+        <div class="timer__controls">
+            <button id="toggle" class="button button--primary timer__button">start</button>
+            <button id="reset" class="button timer__button">reset</button>
+        </div>
+    </div>
 </body>
 </html>
