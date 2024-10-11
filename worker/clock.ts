@@ -1,10 +1,10 @@
 interface MessageData {
-    kind: "start"|"stop"|"reset";
-};
+    kind: "start" | "stop" | "reset";
+}
 
 let prevTimestamp = 0;
 let frame = 0;
-let frameSet = false;
+let hasFrame = false;
 let elapsed = 0;
 
 function tick(timestamp: number): void {
@@ -23,29 +23,30 @@ function tick(timestamp: number): void {
 self.addEventListener("message", (event: MessageEvent<MessageData>) => {
     switch (event.data.kind) {
     case "start":
-        if (!frameSet) {
-            self.requestAnimationFrame((timestamp: number) => {
+        if (!hasFrame) {
+            self.requestAnimationFrame(timestamp => {
                 prevTimestamp = timestamp;
                 frame = self.requestAnimationFrame(tick);
-                frameSet = true;
+                hasFrame = true;
             });
         }
         break;
     case "stop":
-        if (frameSet) {
+        if (hasFrame) {
             self.cancelAnimationFrame(frame);
-            frameSet = false;
+            hasFrame = false;
         }
         break;
     case "reset":
-        if (frameSet) {
+        if (hasFrame) {
             self.cancelAnimationFrame(frame);
-            frameSet = false;
+            hasFrame = false;
         }
         elapsed = 0;
         break;
     default:
-        console.error("Worker: unknown event", event.data);
+        const unhandled_message_kind: never = event.data.kind;
+        console.error("Worker: unknown event", unhandled_message_kind, event.data);
         break;
     }
 });
